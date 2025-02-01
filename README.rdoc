@@ -1,3 +1,54 @@
 = redmine_time_entries_group_by_issue
 
-Description goes here
+# Redmine Time Entries Group By Issue Plugin
+
+## Описание
+
+Этот плагин для [Redmine](http://www.redmine.org) (тестировался на версии 4.1) предназначен для корректной группировки записей трудозатрат по задачам (issues) с отображением суммарного времени по каждой задаче.
+
+## Основные возможности
+
+- **Группировка по задаче:** Записи трудозатрат группируются по полю `issue_id`.
+- **Корректное суммирование:** Суммарное время для каждой задачи выводится в правой части группы, как и в стандартном представлении Redmine.
+- **Отладочное логирование:** В плагине реализовано подробное логирование для отслеживания работы патча и диагностики возникающих проблем.
+
+## Установка
+
+1. **Копирование плагина:**
+   Скопируйте папку плагина в директорию `plugins` вашего экземпляра Redmine. Например, выполните команду:
+   ```bash
+   cp -R /path/to/redmine_time_entries_group_by_issue /path/to/redmine/plugins/
+
+2.	**Перезапуск Redmine:**
+   После копирования перезапустите сервер, на котором запущен Redmine.
+
+Лицензия
+
+Этот плагин распространяется под лицензией MIT.
+
+---
+
+### English version (`README.md`)
+
+# Redmine Time Entries Group By Issue Plugin
+
+## Description
+
+This plugin for [Redmine](http://www.redmine.org) (tested on version 4.1) is designed to correctly group time entries by issues and display the total time spent on each issue.
+
+
+## Key Features
+
+- **Grouping by Issue:** Time entries are grouped by the `issue_id` field.
+- **Correct Summation:** The total time for each issue is displayed on the right side of the group, similar to the standard Redmine view.
+- **Debug Logging:** Detailed logging is implemented in the plugin to track the patch execution and diagnose any issues.
+
+## Installation
+
+1. **Copy the Plugin:**
+   Copy the plugin folder into the `plugins` directory of your Redmine instance. For example, run:
+   ```bash
+   cp -R /path/to/redmine_time_entries_group_by_issue /path/to/redmine/plugins/
+
+2.	Restart Redmine:
+   After copying the plugin, restart the server running Redmine.
