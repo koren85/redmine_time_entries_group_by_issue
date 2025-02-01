@@ -171,6 +171,7 @@ module RedmineTimeEntriesGroupByIssue
       end
     end
   end
+
 end
 
 require_dependency 'time_entry_query'
