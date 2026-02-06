@@ -135,44 +135,80 @@ module RedmineTimeEntriesGroupByIssue
           initialize_available_filters_without_parent
 
           # Добавляем наш фильтр по родительским задачам
-          # Тип :integer позволяет вводить числа через запятую
-          # Операторы: = (содержит), ! (не содержит), * (есть родитель), !* (нет родителя)
+          # Используем тип :string для текстового поля ввода
+          # Это позволит вводить номера задач через запятую как текст
+          # Операторы для :string типа: ~ (содержит), = (равно), !~ (не содержит), ! (не равно), ^, $, !*, *
           add_available_filter(
             "parent_issue_id",
-            :type => :integer,
+            :type => :string,
             :label => :field_parent_issue_filter,
             :name => l(:field_parent_issue_filter)
           )
 
-          Rails.logger.info "DEBUG: [initialize_available_filters] Добавлен фильтр parent_issue_id"
+          Rails.logger.info "DEBUG: [initialize_available_filters] Добавлен фильтр parent_issue_id (тип: string)"
         end
 
         # SQL метод для обработки фильтра по родительским задачам
         def sql_for_parent_issue_id_field(field, operator, value)
-          # Сначала выполним JOIN с таблицей issues, если еще не выполнен
           issue_table = Issue.table_name
           time_entry_table = TimeEntry.table_name
 
+          # Функция для извлечения parent_id из значения
+          # Поддерживаем ввод как "123,456,789" так и массив ["123", "456", "789"]
+          extract_parent_ids = lambda do |val|
+            if val.is_a?(Array)
+              # Если массив - берем первый элемент и парсим его как строку с запятыми
+              val.first.to_s.split(/[,\s]+/).map(&:to_i).reject(&:zero?)
+            else
+              # Если строка - парсим напрямую
+              val.to_s.split(/[,\s]+/).map(&:to_i).reject(&:zero?)
+            end
+          end
+
           case operator
-          when "="
-            # Содержит: фильтруем трудозатраты по задачам, у которых parent_id входит в список
-            parent_ids = value.map(&:to_i).reject(&:zero?).join(',')
+          when "=", "~"
+            # Содержит / Равно: фильтруем трудозатраты по задачам, у которых parent_id входит в список
+            parent_ids = extract_parent_ids.call(value)
+
             if parent_ids.present?
-              sql = "#{time_entry_table}.issue_id IN (SELECT id FROM #{issue_table} WHERE parent_id IN (#{parent_ids}))"
-              Rails.logger.info "DEBUG: [sql_for_parent_issue_id_field] Оператор '=', SQL: #{sql}"
+              parent_ids_str = parent_ids.join(',')
+              sql = "#{time_entry_table}.issue_id IN (SELECT id FROM #{issue_table} WHERE parent_id IN (#{parent_ids_str}))"
+              Rails.logger.info "DEBUG: [sql_for_parent_issue_id_field] Оператор '#{operator}', parent_ids: #{parent_ids.inspect}, SQL: #{sql}"
               sql
             else
               "1=0"
             end
-          when "!"
-            # Не содержит: фильтруем трудозатраты по задачам, у которых parent_id НЕ входит в список
-            parent_ids = value.map(&:to_i).reject(&:zero?).join(',')
+          when "!", "!~"
+            # Не содержит / Не равно: фильтруем трудозатраты по задачам, у которых parent_id НЕ входит в список
+            parent_ids = extract_parent_ids.call(value)
+
             if parent_ids.present?
-              sql = "#{time_entry_table}.issue_id NOT IN (SELECT id FROM #{issue_table} WHERE parent_id IN (#{parent_ids}))"
-              Rails.logger.info "DEBUG: [sql_for_parent_issue_id_field] Оператор '!', SQL: #{sql}"
+              parent_ids_str = parent_ids.join(',')
+              sql = "(#{time_entry_table}.issue_id IS NULL OR #{time_entry_table}.issue_id NOT IN (SELECT id FROM #{issue_table} WHERE parent_id IN (#{parent_ids_str})))"
+              Rails.logger.info "DEBUG: [sql_for_parent_issue_id_field] Оператор '#{operator}', parent_ids: #{parent_ids.inspect}, SQL: #{sql}"
               sql
             else
               "1=1"
+            end
+          when "^"
+            # Начинается с: интерпретируем как parent_id начинается с числа
+            parent_id_prefix = value.is_a?(Array) ? value.first.to_s : value.to_s
+            if parent_id_prefix.present?
+              sql = "#{time_entry_table}.issue_id IN (SELECT id FROM #{issue_table} WHERE CAST(parent_id AS TEXT) LIKE '#{parent_id_prefix.to_i}%')"
+              Rails.logger.info "DEBUG: [sql_for_parent_issue_id_field] Оператор '^', prefix: #{parent_id_prefix}, SQL: #{sql}"
+              sql
+            else
+              "1=0"
+            end
+          when "$"
+            # Заканчивается на: интерпретируем как parent_id заканчивается на число
+            parent_id_suffix = value.is_a?(Array) ? value.first.to_s : value.to_s
+            if parent_id_suffix.present?
+              sql = "#{time_entry_table}.issue_id IN (SELECT id FROM #{issue_table} WHERE CAST(parent_id AS TEXT) LIKE '%#{parent_id_suffix.to_i}')"
+              Rails.logger.info "DEBUG: [sql_for_parent_issue_id_field] Оператор '$', suffix: #{parent_id_suffix}, SQL: #{sql}"
+              sql
+            else
+              "1=0"
             end
           when "*"
             # Есть родитель: фильтруем трудозатраты по задачам, у которых есть parent_id
