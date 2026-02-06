@@ -1,4 +1,6 @@
 en:
   field_issue: "Issue"
+  field_parent_issue: "Parent issue"
+  field_parent_issue_filter: "Parent issue"
   field_time_estimate: "time estimate"
   field_total_time_estimate: "total estimate time"

@@ -1,4 +1,6 @@
 ru:
   field_issue: "Задача"
+  field_parent_issue: "Родительская задача"
+  field_parent_issue_filter: "Родительская задача"
   field_time_estimate: "Оценка временных затрат"
   field_total_time_estimate: "Общая оценка временных затрат"
